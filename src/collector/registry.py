@@ -5,6 +5,7 @@ from typing import Callable
 from collector.base import Platform
 from collector.bilibili import Bilibili
 from collector.douyin import Douyin
+from collector.kuaishou import Kuaishou
 from collector.weibo import Weibo
 
 
@@ -12,7 +13,7 @@ PLATFORMS: dict[str, Platform] = {
     "bilibili": Bilibili(),
     "douyin": Douyin(),
     "weibo": Weibo(),
-    # 快手在 Phase 3 中注册
+    "kuaishou": Kuaishou(),
 }
 
 

@@ -1,0 +1,27 @@
+{
+  "data": {
+    "visionProfilePhotoList": {
+      "pcursor": "1.0",
+      "feeds": [
+        {
+          "photo": {
+            "id": "3xabc123def456",
+            "duration": 45000,
+            "caption": "复旦大学校园风光",
+            "photoUrl": "https://v.kuaishou.com/3xabc123def456",
+            "coverUrl": "https://tx2.a.yximgs.com/cover.jpg",
+            "likeCount": 8900,
+            "commentCount": 230,
+            "viewCount": 450000,
+            "shareCount": 120,
+            "timestamp": 1748764800000
+          },
+          "author": {
+            "id": "3xfudan2026",
+            "name": "复旦大学"
+          }
+        }
+      ]
+    }
+  }
+}

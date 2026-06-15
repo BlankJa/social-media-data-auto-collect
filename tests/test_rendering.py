@@ -72,3 +72,11 @@ def test_weibo_columns_match_spec():
         "博主昵称", "页面网址", "发布时间", "详情链接", "博文内容",
         "视频链接", "图片链接", "转发数", "评论数", "点赞数",
     ]
+
+
+def test_kuaishou_columns_match_spec():
+    names = [c.name for c in COLUMNS["kuaishou"]]
+    assert names == [
+        "快手个人账号链接", "视频封面图地址", "视频点赞数", "快手个人账号名称",
+        "视频地址", "视频标题", "视频发布时间", "视频详情链接",
+    ]

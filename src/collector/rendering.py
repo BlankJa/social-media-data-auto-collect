@@ -71,11 +71,23 @@ _WEIBO: list[ColumnSpec] = [
 ]
 
 
+_KUAISHOU: list[ColumnSpec] = [
+    ColumnSpec(name="快手个人账号链接", extract=lambda p: f"https://www.kuaishou.com/profile/{p.author_id}"),
+    ColumnSpec(name="视频封面图地址", extract=lambda p: p.cover_url),
+    ColumnSpec(name="视频点赞数", extract=lambda p: p.like_count),
+    ColumnSpec(name="快手个人账号名称", extract=lambda p: p.author_name),
+    ColumnSpec(name="视频地址", extract=lambda p: p.url),
+    ColumnSpec(name="视频标题", extract=lambda p: p.title),
+    ColumnSpec(name="视频发布时间", extract=lambda p: _fmt_dt(p.published_at)),
+    ColumnSpec(name="视频详情链接", extract=lambda p: p.url),
+]
+
+
 COLUMNS: dict[Platform, list[ColumnSpec]] = {
     "bilibili": _BILIBILI,
     "douyin": _DOUYIN,
     "weibo": _WEIBO,
-    # 快手将在 Phase 3 补全
+    "kuaishou": _KUAISHOU,
 }
 
 

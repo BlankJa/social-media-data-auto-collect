@@ -3,6 +3,7 @@ from pathlib import Path
 
 from collector.bilibili import Bilibili, _parse_count
 from collector.douyin import Douyin
+from collector.kuaishou import Kuaishou
 from collector.weibo import Weibo
 from collector.schemas import Account, RawPost
 
@@ -83,3 +84,25 @@ def test_weibo_parse():
     assert post.media_type == "image"  # 有 pic_infos 无 video
     assert "wx1.sinaimg.cn" in post.extras["image_urls"]
     assert post.author_name == "复旦大学"
+
+
+def test_kuaishou_parse():
+    sample = _load("kuaishou/sample_response.json")
+    feed = sample["data"]["visionProfilePhotoList"]["feeds"][0]
+    photo = feed["photo"]
+    author = feed["author"]
+    account = Account(
+        platform="kuaishou", account_id=str(author["id"]), account_name=author["name"]
+    )
+    raw = RawPost(account=account, raw=feed, post_id=photo["id"])
+    post = Kuaishou().parse(raw, account)
+    assert post.platform == "kuaishou"
+    assert post.post_id == photo["id"]
+    assert post.title == photo["caption"]
+    assert post.view_count == photo["viewCount"]
+    assert post.like_count == photo["likeCount"]
+    assert post.comment_count == photo["commentCount"]
+    assert post.share_count == photo["shareCount"]
+    assert post.duration_sec == 45  # 45000ms -> 45s
+    assert post.author_name == "复旦大学"
+    assert post.url == f"https://www.kuaishou.com/short-video/{photo['id']}"
