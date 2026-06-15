@@ -3,6 +3,7 @@ from pathlib import Path
 
 from collector.bilibili import Bilibili, _parse_count
 from collector.douyin import Douyin
+from collector.weibo import Weibo
 from collector.schemas import Account, RawPost
 
 
@@ -60,3 +61,25 @@ def test_douyin_parse():
     assert post.duration_sec == 65  # 65000ms -> 65s
     assert post.extras["author_bio"] == item["author"]["signature"]
     assert post.url == f"https://www.douyin.com/video/{item['aweme_id']}"
+
+
+def test_weibo_parse():
+    sample = _load("weibo/sample_response.json")
+    item = sample["data"]["list"][0]
+    account = Account(
+        platform="weibo",
+        account_id=str(item["user"]["id"]),
+        account_name=item["user"]["screen_name"],
+    )
+    raw = RawPost(account=account, raw=item, post_id=item["mblogid"])
+    post = Weibo().parse(raw, account)
+    assert post.platform == "weibo"
+    assert post.post_id == item["mblogid"]
+    assert post.title == item["text_raw"]
+    assert post.like_count == item["attitudes_count"]
+    assert post.comment_count == item["comments_count"]
+    assert post.share_count == item["reposts_count"]
+    assert post.view_count == item["reads_count"]
+    assert post.media_type == "image"  # 有 pic_infos 无 video
+    assert "wx1.sinaimg.cn" in post.extras["image_urls"]
+    assert post.author_name == "复旦大学"

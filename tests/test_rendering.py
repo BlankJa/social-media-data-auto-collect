@@ -64,3 +64,11 @@ def test_douyin_columns_match_spec():
         "封面图url", "是否置顶", "发布时间", "视频时长", "评论数",
         "收藏数", "转发数", "页面网址",
     ]
+
+
+def test_weibo_columns_match_spec():
+    names = [c.name for c in COLUMNS["weibo"]]
+    assert names == [
+        "博主昵称", "页面网址", "发布时间", "详情链接", "博文内容",
+        "视频链接", "图片链接", "转发数", "评论数", "点赞数",
+    ]

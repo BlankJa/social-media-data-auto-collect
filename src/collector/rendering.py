@@ -57,10 +57,25 @@ _DOUYIN: list[ColumnSpec] = [
 ]
 
 
+_WEIBO: list[ColumnSpec] = [
+    ColumnSpec(name="博主昵称", extract=lambda p: p.author_name),
+    ColumnSpec(name="页面网址", extract=lambda p: f"https://weibo.com/u/{p.author_id}"),
+    ColumnSpec(name="发布时间", extract=lambda p: _fmt_dt(p.published_at)),
+    ColumnSpec(name="详情链接", extract=lambda p: p.url),
+    ColumnSpec(name="博文内容", extract=lambda p: p.title),
+    ColumnSpec(name="视频链接", extract=lambda p: p.extras.get("video_url", "")),
+    ColumnSpec(name="图片链接", extract=lambda p: p.extras.get("image_urls", "")),
+    ColumnSpec(name="转发数", extract=lambda p: p.share_count),
+    ColumnSpec(name="评论数", extract=lambda p: p.comment_count),
+    ColumnSpec(name="点赞数", extract=lambda p: p.like_count),
+]
+
+
 COLUMNS: dict[Platform, list[ColumnSpec]] = {
     "bilibili": _BILIBILI,
     "douyin": _DOUYIN,
-    # 微博、快手将在 Phase 3 补全
+    "weibo": _WEIBO,
+    # 快手将在 Phase 3 补全
 }
 
 
