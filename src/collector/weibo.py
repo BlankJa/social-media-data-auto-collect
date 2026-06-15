@@ -28,7 +28,13 @@ class Weibo:
     def fetch_user_feed(
         self, account: Account, cookies: dict[str, str], since_post_id: str | None
     ) -> Iterator[RawPost]:
-        headers = {"User-Agent": _UA, "Referer": f"https://weibo.com/u/{account.account_id}"}
+        headers = {
+            "User-Agent": _UA,
+            "Referer": f"https://weibo.com/u/{account.account_id}",
+            "Accept": "application/json, text/plain, */*",
+            "x-requested-with": "XMLHttpRequest",
+            "x-xsrf-token": cookies.get("XSRF-TOKEN", ""),
+        }
         with httpx.Client(cookies=cookies, headers=headers) as client:
             page = 1
             while True:
