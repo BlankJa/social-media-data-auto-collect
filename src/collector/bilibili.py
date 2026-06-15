@@ -20,6 +20,20 @@ _UA = (
 )
 
 
+def _parse_count(value: object) -> int | None:
+    """B 站计数字段过万会返回「5.6万」「1.2亿」这类字符串，统一转 int。"""
+    if value is None or value == "":
+        return None
+    if isinstance(value, (int, float)):
+        return int(value)
+    s = str(value).strip()
+    if s.endswith("万"):
+        return int(float(s[:-1]) * 10_000)
+    if s.endswith("亿"):
+        return int(float(s[:-1]) * 100_000_000)
+    return int(s)
+
+
 def _duration_text_to_sec(text: str | None) -> int | None:
     if not text:
         return None
@@ -101,11 +115,11 @@ class Bilibili:
             cover_url=archive.get("cover"),
             duration_sec=_duration_text_to_sec(archive.get("duration_text")),
             media_type="video",
-            published_at=datetime.fromtimestamp(author["pub_ts"], tz=timezone.utc),
-            like_count=stat.get("like", {}).get("count"),
-            comment_count=stat.get("comment", {}).get("count"),
-            share_count=stat.get("forward", {}).get("count"),
-            view_count=int(archive.get("stat", {}).get("play", 0)) or None,
+            published_at=datetime.fromtimestamp(int(author["pub_ts"]), tz=timezone.utc),
+            like_count=_parse_count(stat.get("like", {}).get("count")),
+            comment_count=_parse_count(stat.get("comment", {}).get("count")),
+            share_count=_parse_count(stat.get("forward", {}).get("count")),
+            view_count=_parse_count(archive.get("stat", {}).get("play")),
             collect_count=None,
             author_id=str(author["mid"]),
             author_name=author["name"],

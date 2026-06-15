@@ -24,7 +24,8 @@
           "module_author": {
             "mid": 448167395,
             "name": "复旦大学",
-            "pub_ts": 1748764800
+            "pub_ts": "1748764800",
+            "pub_time": "06月01日"
           },
           "module_stat": {
             "like": {"count": 10},

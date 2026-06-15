@@ -1,8 +1,17 @@
 import json
 from pathlib import Path
 
-from collector.bilibili import Bilibili
+from collector.bilibili import Bilibili, _parse_count
 from collector.schemas import Account, RawPost
+
+
+def test_parse_count_handles_units():
+    assert _parse_count(656) == 656
+    assert _parse_count("656") == 656
+    assert _parse_count("5.6万") == 56000
+    assert _parse_count("1.2亿") == 120000000
+    assert _parse_count("") is None
+    assert _parse_count(None) is None
 
 
 def _load(name: str) -> dict:
