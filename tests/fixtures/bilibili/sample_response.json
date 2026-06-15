@@ -1,0 +1,41 @@
+{
+  "code": 0,
+  "message": "0",
+  "data": {
+    "items": [
+      {
+        "id_str": "111",
+        "type": "DYNAMIC_TYPE_AV",
+        "modules": {
+          "module_dynamic": {
+            "major": {
+              "type": "MAJOR_TYPE_ARCHIVE",
+              "archive": {
+                "bvid": "BV1xx",
+                "title": "测试视频",
+                "desc": "简介",
+                "cover": "https://i0.hdslb.com/cover.jpg",
+                "duration_text": "02:00",
+                "jump_url": "//www.bilibili.com/video/BV1xx",
+                "stat": {"play": "300", "danmaku": "1"}
+              }
+            }
+          },
+          "module_author": {
+            "mid": 448167395,
+            "name": "复旦大学",
+            "pub_ts": "1748764800",
+            "pub_time": "06月01日"
+          },
+          "module_stat": {
+            "like": {"count": 10},
+            "comment": {"count": 2},
+            "forward": {"count": 1}
+          }
+        }
+      }
+    ],
+    "has_more": false,
+    "offset": ""
+  }
+}
