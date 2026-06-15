@@ -1,0 +1,37 @@
+{
+  "ok": 1,
+  "data": {
+    "list": [
+      {
+        "mblogid": "PabcDEF12",
+        "text_raw": "【复旦大学2026级开学典礼举行】今天，复旦迎来新一届本科新生。",
+        "created_at": "Mon Jun 01 10:30:00 +0800 2026",
+        "attitudes_count": 1280,
+        "comments_count": 96,
+        "reposts_count": 45,
+        "reads_count": 350000,
+        "pic_infos": {
+          "abc123": {
+            "large": {
+              "url": "https://wx1.sinaimg.cn/large/abc123.jpg"
+            }
+          },
+          "def456": {
+            "large": {
+              "url": "https://wx2.sinaimg.cn/large/def456.jpg"
+            }
+          }
+        },
+        "page_info": {
+          "media_info": {
+            "stream_url": ""
+          }
+        },
+        "user": {
+          "id": 1234567890,
+          "screen_name": "复旦大学"
+        }
+      }
+    ]
+  }
+}
