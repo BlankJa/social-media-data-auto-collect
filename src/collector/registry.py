@@ -4,11 +4,13 @@ from typing import Callable
 
 from collector.base import Platform
 from collector.bilibili import Bilibili
+from collector.douyin import Douyin
 
 
 PLATFORMS: dict[str, Platform] = {
     "bilibili": Bilibili(),
-    # 其余平台在 Phase 2/3 中注册
+    "douyin": Douyin(),
+    # 微博、快手在 Phase 3 中注册
 }
 
 

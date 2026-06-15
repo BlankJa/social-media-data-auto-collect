@@ -1,0 +1,32 @@
+{
+  "status_code": 0,
+  "aweme_list": [
+    {
+      "aweme_id": "7400000000000000000",
+      "desc": "复旦大学毕业季宣传片",
+      "create_time": 1748764800,
+      "video": {
+        "duration": 65000,
+        "cover": {
+          "url_list": [
+            "https://p3.douyinpic.com/cover.jpg"
+          ]
+        }
+      },
+      "statistics": {
+        "digg_count": 12000,
+        "comment_count": 340,
+        "share_count": 89,
+        "play_count": 560000,
+        "collect_count": 1200
+      },
+      "author": {
+        "sec_uid": "MS4wLjABAAAA-fudan",
+        "nickname": "复旦大学",
+        "signature": "日月光华，旦复旦兮"
+      }
+    }
+  ],
+  "max_cursor": 1748764800000,
+  "has_more": 0
+}

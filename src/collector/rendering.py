@@ -20,6 +20,13 @@ def _fmt_dur_hms(sec: int | None) -> str | None:
     return f"{h:02d}:{m:02d}:{s:02d}"
 
 
+def _fmt_dur_mmss(sec: int | None) -> str | None:
+    if sec is None:
+        return None
+    m, s = divmod(sec, 60)
+    return f"{m:02d}:{s:02d}"
+
+
 _BILIBILI: list[ColumnSpec] = [
     ColumnSpec(name="发布者", extract=lambda p: p.author_name),
     ColumnSpec(name="页面源码1", extract=lambda p: None),
@@ -33,9 +40,27 @@ _BILIBILI: list[ColumnSpec] = [
 ]
 
 
+_DOUYIN: list[ColumnSpec] = [
+    ColumnSpec(name="博主名称", extract=lambda p: p.author_name),
+    ColumnSpec(name="博主简介", extract=lambda p: p.extras.get("author_bio", "")),
+    ColumnSpec(name="视频标题", extract=lambda p: p.title),
+    ColumnSpec(name="视频链接", extract=lambda p: p.url),
+    ColumnSpec(name="视频点赞数", extract=lambda p: p.like_count),
+    ColumnSpec(name="封面图url", extract=lambda p: p.cover_url),
+    ColumnSpec(name="是否置顶", extract=lambda p: "否"),
+    ColumnSpec(name="发布时间", extract=lambda p: _fmt_dt(p.published_at)),
+    ColumnSpec(name="视频时长", extract=lambda p: _fmt_dur_mmss(p.duration_sec)),
+    ColumnSpec(name="评论数", extract=lambda p: p.comment_count),
+    ColumnSpec(name="收藏数", extract=lambda p: p.collect_count),
+    ColumnSpec(name="转发数", extract=lambda p: p.share_count),
+    ColumnSpec(name="页面网址", extract=lambda p: p.url),
+]
+
+
 COLUMNS: dict[Platform, list[ColumnSpec]] = {
     "bilibili": _BILIBILI,
-    # 抖音、微博、快手将在 Phase 2/3 补全
+    "douyin": _DOUYIN,
+    # 微博、快手将在 Phase 3 补全
 }
 
 

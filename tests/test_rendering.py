@@ -55,3 +55,12 @@ def test_render_bilibili_xlsx(tmp_path: Path):
     assert row2[4] == 300
     assert row2[6] == "00:02:05"
     assert row2[8] is None or row2[8] == ""
+
+
+def test_douyin_columns_match_spec():
+    names = [c.name for c in COLUMNS["douyin"]]
+    assert names == [
+        "博主名称", "博主简介", "视频标题", "视频链接", "视频点赞数",
+        "封面图url", "是否置顶", "发布时间", "视频时长", "评论数",
+        "收藏数", "转发数", "页面网址",
+    ]
