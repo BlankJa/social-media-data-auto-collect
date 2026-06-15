@@ -13,6 +13,7 @@ dependencies = [
     "typer>=0.12",
     "loguru>=0.7",
     "rich>=13",
+    "f2>=0.0.1.7",
 ]
 
 [project.optional-dependencies]
