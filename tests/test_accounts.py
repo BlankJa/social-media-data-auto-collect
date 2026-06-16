@@ -1,6 +1,11 @@
 from pathlib import Path
 
-from collector.accounts import add_account, load_accounts_raw, remove_account
+from collector.accounts import (
+    add_account,
+    load_accounts_raw,
+    remove_account,
+    validate_account_id,
+)
 
 
 def test_add_then_load(tmp_path: Path):
@@ -34,3 +39,16 @@ def test_remove_missing(tmp_path: Path):
     add_account(tmp_path, "kuaishou", "3xabc", "复旦大学")
     assert remove_account(tmp_path, "kuaishou", "3xzzz") is False
     assert len(load_accounts_raw(tmp_path, "kuaishou")) == 1
+
+
+def test_validate_ok():
+    assert validate_account_id("bilibili", "17616721") is None
+    assert validate_account_id("kuaishou", "3xiz35fp79yc3cu") is None
+    assert validate_account_id("douyin", "MS4wLjABAAAA") is None
+    assert validate_account_id("weibo", "1729332983") is None
+
+
+def test_validate_warns():
+    assert validate_account_id("bilibili", "abc") is not None
+    assert validate_account_id("kuaishou", "zzz") is not None
+    assert validate_account_id("douyin", "123") is not None

@@ -52,6 +52,21 @@ def add_account(config_root: Path, platform: str, account_id: str, account_name:
     return True
 
 
+def validate_account_id(platform: str, account_id: str) -> str | None:
+    """按平台对 account_id 做轻量格式提示。不符返回警告串，正常返回 None。仅警告不拦截。"""
+    aid = str(account_id)
+    if platform in ("bilibili", "weibo"):
+        if not aid.isdigit():
+            return f"{platform} 的 account_id 一般是纯数字，当前 '{aid}' 可能填错"
+    elif platform == "douyin":
+        if not aid.startswith("MS4w"):
+            return f"抖音 sec_uid 一般以 MS4w 开头，当前 '{aid}' 可能填错"
+    elif platform == "kuaishou":
+        if not aid.startswith("3x"):
+            return f"快手主页 id 一般以 3x 开头，当前 '{aid}' 可能填错"
+    return None
+
+
 def remove_account(config_root: Path, platform: str, account_id: str) -> bool:
     """删一个账号。删到了写回返回 True；不存在返回 False。"""
     accounts = load_accounts_raw(config_root, platform)
