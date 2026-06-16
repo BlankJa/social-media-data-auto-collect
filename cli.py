@@ -28,7 +28,7 @@ from collector.status import (
     RunStatus,
     count_recent_posts,
     read_status,
-    render_status_table,
+    render_status_panel,
     write_status,
 )
 
@@ -237,8 +237,9 @@ def collect(platform: str, full: bool = typer.Option(False, "--full")):
 
 @app.command()
 def status():
-    """显示最近一次跑的健康面板。"""
-    render_status_table(read_status(STATUS_PATH))
+    """显示采集健康面板：cookie 年龄 + 近7天 + 建议。"""
+    rs = read_status(STATUS_PATH) if STATUS_PATH.exists() else None
+    render_status_panel(list(PLATFORMS.keys()), COOKIE_ROOT, DATA_ROOT, rs)
 
 
 @app.command()

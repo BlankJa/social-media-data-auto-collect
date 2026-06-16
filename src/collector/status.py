@@ -86,24 +86,25 @@ def count_recent_posts(data_root: Path, platform: Platform, *, days: int = 7) ->
     return n
 
 
-def render_status_table(status: RunStatus) -> None:
+def render_status_panel(
+    platforms: list[str],
+    cookie_root: Path,
+    data_root: Path,
+    run_status: "RunStatus | None",
+) -> None:
+    """实时面板：cookie 年龄（独立于上次运行）+ 近7天 + 建议。"""
     console = Console()
-    table = Table(title=f"上次运行：{status.last_run_finished_at:%Y-%m-%d %H:%M}（{status.last_run_mode}）")
+    table = Table(title="新媒体采集状态")
     table.add_column("平台")
-    table.add_column("账号 ok/总")
-    table.add_column("本次新增")
+    table.add_column("Cookie 年龄")
     table.add_column("近7天")
-    table.add_column("Cookie")
-    cell = {"ok": "[green]✓[/]", "warning": "[yellow]⚠[/]", "expired": "[red]✗ 已过期[/]"}
-    for name, ps in status.platforms.items():
-        cookie_cell = cell[ps.cookie_health]
-        if ps.cookie_health == "expired":
-            cookie_cell += f"  → cli.py login {name}"
-        table.add_row(
-            name,
-            f"{ps.accounts_ok}/{ps.accounts_total}",
-            str(ps.new_posts),
-            str(ps.new_posts_7d),
-            cookie_cell,
-        )
+    table.add_column("建议")
+    for name in platforms:
+        health = None
+        if run_status is not None and name in run_status.platforms:
+            health = run_status.platforms[name].cookie_health
+        age_text, advice = cookie_advice(name, cookie_root / f"{name}.json", health)
+        n7 = count_recent_posts(data_root, name)
+        table.add_row(name, age_text, str(n7), advice)
     console.print(table)
+    console.print("重扫命令：cli.py login <平台>")
