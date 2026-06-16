@@ -50,3 +50,13 @@ def add_account(config_root: Path, platform: str, account_id: str, account_name:
     accounts.append({"account_id": str(account_id), "account_name": str(account_name)})
     write_accounts(config_root, platform, accounts)
     return True
+
+
+def remove_account(config_root: Path, platform: str, account_id: str) -> bool:
+    """删一个账号。删到了写回返回 True；不存在返回 False。"""
+    accounts = load_accounts_raw(config_root, platform)
+    kept = [a for a in accounts if a["account_id"] != str(account_id)]
+    if len(kept) == len(accounts):
+        return False
+    write_accounts(config_root, platform, kept)
+    return True
