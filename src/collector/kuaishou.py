@@ -8,6 +8,8 @@ import httpx
 from loguru import logger
 
 from collector.base import CookieHealth
+# 快手计数字段过万同样返回「121.7万」「1.2亿」中文串，复用 B 站的解析逻辑。
+from collector.bilibili import _parse_count
 from collector.schemas import Account, Post, RawPost
 
 
@@ -18,13 +20,32 @@ _UA = (
 _GQL = "https://www.kuaishou.com/graphql"
 
 
+# 真机实测（2026-06-16）：photo 是接口类型 Photo，需 `... on PhotoEntity` 内联片段；
+# Photo 上没有 shareCount（commentCount 在 PhotoEntity 上恒为 null）。
+# likeCount/viewCount 以字符串数字返回（parse 时 pydantic 自动转 int），duration/timestamp 为毫秒。
 _QUERY = """
 query visionProfilePhotoList($pcursor: String, $userId: String, $page: String, $webPageArea: String) {
   visionProfilePhotoList(pcursor: $pcursor, userId: $userId, page: $page, webPageArea: $webPageArea) {
+    result
     pcursor
     feeds {
-      photo { id duration caption photoUrl coverUrl likeCount commentCount viewCount shareCount timestamp }
+      type
       author { id name }
+      photo {
+        __typename
+        ... on PhotoEntity {
+          id
+          duration
+          caption
+          coverUrl
+          photoUrl
+          likeCount
+          commentCount
+          viewCount
+          realLikeCount
+          timestamp
+        }
+      }
     }
   }
 }
@@ -82,10 +103,10 @@ class Kuaishou:
             duration_sec=int(photo.get("duration", 0) / 1000) or None,
             media_type="video",
             published_at=datetime.fromtimestamp(photo["timestamp"] / 1000, tz=timezone.utc),
-            like_count=photo.get("likeCount"),
-            comment_count=photo.get("commentCount"),
-            share_count=photo.get("shareCount"),
-            view_count=photo.get("viewCount"),
+            like_count=_parse_count(photo.get("likeCount")),
+            comment_count=_parse_count(photo.get("commentCount")),
+            share_count=None,  # Photo 接口无 shareCount 字段
+            view_count=_parse_count(photo.get("viewCount")),
             author_id=str(author.get("id", account.account_id)),
             author_name=author.get("name", account.account_name),
             fetched_at=datetime.now(timezone.utc),

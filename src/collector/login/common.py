@@ -38,7 +38,7 @@ def wait_for_cookies(
     deadline = time.time() + timeout
     missing: list[str] = list(required)
     while time.time() < deadline:
-        cookies = driver.get_cookies()
+        cookies = driver.get_cookies() or []
         names = {c["name"] for c in cookies}
         missing = [n for n in required if n not in names]
         if not missing:

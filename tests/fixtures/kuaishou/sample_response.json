@@ -1,24 +1,47 @@
 {
   "data": {
     "visionProfilePhotoList": {
-      "pcursor": "1.0",
+      "result": 1,
+      "pcursor": "1.780047388619E12",
       "feeds": [
         {
-          "photo": {
-            "id": "3xabc123def456",
-            "duration": 45000,
-            "caption": "复旦大学校园风光",
-            "photoUrl": "https://v.kuaishou.com/3xabc123def456",
-            "coverUrl": "https://tx2.a.yximgs.com/cover.jpg",
-            "likeCount": 8900,
-            "commentCount": 230,
-            "viewCount": 450000,
-            "shareCount": 120,
-            "timestamp": 1748764800000
-          },
+          "type": 1,
           "author": {
-            "id": "3xfudan2026",
+            "id": "3xiz35fp79yc3cu",
             "name": "复旦大学"
+          },
+          "photo": {
+            "__typename": "PhotoEntity",
+            "id": "3xbhc5in6spbe7e",
+            "duration": 328820,
+            "caption": "今天（6月6日），复旦大学2026年本科生招生宣传片《无用之用》正式发布！\n点燃热爱，跨越边界，无用之用，是为大用！ #复旦大学 #2026高考  #2026高考加油  #高考  @快手校园(O3xi534qv26yyu86) ",
+            "coverUrl": "https://p2.a.yximgs.com/upic/2026/06/06/00/BMjAyNjA2MDYwMDIyMzdfMTU3NzE1NDQzN18xOTgwMDcwMjI2NzVfMF8z_ccc_B0b80bd3a49ec8c467f325410325faaf9.jpg?tag=1-1781573830-xpcwebprofile-0-3rnlulb9zr-c8f16ed6cefe84e5&clientCacheKey=3xbhc5in6spbe7e_ccc.jpg&di=71c98070&bp=14734",
+            "photoUrl": "https://v23-3.kwaicdn.com/upic/2026/06/06/00/BMjAyNjA2MDYwMDIyMzdfMTU3NzE1NDQzN18xOTgwMDcwMjI2NzVfMF8z_b_Bdf1f82c99abcbbfb30de391c80cd2433.mp4?pkey=AAVBQB3aokVifijM2OI9-jNbwhcuhkH1kgIrFLCzWBFENGAxaBJZmVJpdDalRJcNxNuNWJpnfNzvD0N1z6xDGDKi3YrLUvobmtjhvVHfhLrXfiAgKoOHheXT9DwQm5mhgqI&tag=1-1781573830-unknown-0-pvbkqylvpy-b34b95977c29507a&clientCacheKey=3xbhc5in6spbe7e_b.mp4&di=71c98070&bp=14734&kwai-not-alloc=49&tt=b&ss=vps",
+            "likeCount": "5209",
+            "commentCount": null,
+            "viewCount": "66280",
+            "realLikeCount": 5209,
+            "timestamp": 1780704472918
+          }
+        },
+        {
+          "type": 1,
+          "author": {
+            "id": "3xiz35fp79yc3cu",
+            "name": "复旦大学"
+          },
+          "photo": {
+            "__typename": "PhotoEntity",
+            "id": "3x5pbt44cax6vek",
+            "duration": 16733,
+            "caption": "别回头，别停留，往前走。\n✨复旦永远在你身后，请你大胆前行。\n\n视频：欧思逸，李玲等 #复旦大学  #校园里的美好时光  #校园随手拍  @快手校园(O3xi534qv26yyu86)  @快手教育(O3xs4pwkr6yf6g56) ",
+            "coverUrl": "https://p23.a.yximgs.com/upic/2025/11/14/16/BMjAyNTExMTQxNjM0MjNfMTU3NzE1NDQzN18xNzk4NDcyMjQ5NDJfMF8z_B9ef8aa16a730fcd4dcd8cc919f734c25.jpg?tag=1-1781573830-xpcwebprofile-0-gi8wdtfx73-8121ff33e351c88b&clientCacheKey=3x5pbt44cax6vek.jpg&di=71c98070&bp=14734",
+            "photoUrl": "https://v23-3.kwaicdn.com/upic/2025/11/14/16/BMjAyNTExMTQxNjM0MjNfMTU3NzE1NDQzN18xNzk4NDcyMjQ5NDJfMF8z_b_Be611eec026f4a4d4a8ea22f50e2ee5cc.mp4?pkey=AAXTOdOn2zHbfEbgSuBBimQrluokJ9dWIGGO3ziUJ7IRTwdgYnkgTUWdlXenv_6h3dLFDZGvYfM7E9R_HAnz3ak7sKY89rdP7NB2q3NBmLrZ_goqDyr_F9NWr79bxlxk5f4&tag=1-1781573830-unknown-0-8iwkuh6nkg-318fde46560ca14f&clientCacheKey=3x5pbt44cax6vek_b.mp4&di=71c98070&bp=14734&kwai-not-alloc=49&tt=b&ss=vps",
+            "likeCount": "121.7万",
+            "commentCount": null,
+            "viewCount": "7343987",
+            "realLikeCount": 1216820,
+            "timestamp": 1763109436004
           }
         }
       ]

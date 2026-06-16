@@ -99,10 +99,34 @@ def test_kuaishou_parse():
     assert post.platform == "kuaishou"
     assert post.post_id == photo["id"]
     assert post.title == photo["caption"]
-    assert post.view_count == photo["viewCount"]
-    assert post.like_count == photo["likeCount"]
-    assert post.comment_count == photo["commentCount"]
-    assert post.share_count == photo["shareCount"]
-    assert post.duration_sec == 45  # 45000ms -> 45s
+    # 真机：likeCount/viewCount 是字符串需转 int；commentCount 为 None；无 shareCount
+    assert post.view_count == int(photo["viewCount"])
+    assert post.like_count == int(photo["likeCount"])
+    assert post.comment_count is None
+    assert post.share_count is None
+    assert post.duration_sec == photo["duration"] // 1000  # 毫秒 -> 秒
     assert post.author_name == "复旦大学"
     assert post.url == f"https://www.kuaishou.com/short-video/{photo['id']}"
+
+
+def test_kuaishou_parse_wan_count():
+    """真机：点赞过万时 likeCount 是「121.7万」中文串，需转成整数 1217000。"""
+    feed = {
+        "author": {"id": "3xiz35fp79yc3cu", "name": "复旦大学"},
+        "photo": {
+            "id": "3xwan",
+            "duration": 10000,
+            "caption": "热门视频",
+            "coverUrl": "https://p.example/c.jpg",
+            "photoUrl": "https://v.example/v.mp4",
+            "likeCount": "121.7万",
+            "commentCount": None,
+            "viewCount": "1.2亿",
+            "timestamp": 1780704472918,
+        },
+    }
+    account = Account(platform="kuaishou", account_id="3xiz35fp79yc3cu", account_name="复旦大学")
+    raw = RawPost(account=account, raw=feed, post_id="3xwan")
+    post = Kuaishou().parse(raw, account)
+    assert post.like_count == 1_217_000
+    assert post.view_count == 120_000_000
