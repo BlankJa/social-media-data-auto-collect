@@ -9,9 +9,31 @@ from pydantic import BaseModel
 from rich.console import Console
 from rich.table import Table
 
+from collector.cookies import CookieFileMissing, cookie_age
 from collector.schemas import Platform
 
 CookieHealth = Literal["ok", "warning", "expired"]
+
+# cookie 年龄预警阈值（天）。快手是 7 天会话，提前 1 天预警。
+COOKIE_AGE_WARN_DAYS = {"kuaishou": 6, "bilibili": 25, "weibo": 25, "douyin": 25}
+
+
+def cookie_advice(
+    platform: str, cookie_path: Path, last_run_health: str | None
+) -> tuple[str, str]:
+    """返回 (年龄文本, 建议)。优先级：缺文件 > 上次运行已过期 > 年龄超阈值 > 正常。"""
+    if not cookie_path.exists():
+        return "—", "❌ 未登录，需扫码"
+    try:
+        days = cookie_age(cookie_path).days
+    except CookieFileMissing:
+        return "—", "❌ 未登录，需扫码"
+    age_text = f"{days}天"
+    if last_run_health == "expired":
+        return age_text, "❌ 已过期，需重扫"
+    if days > COOKIE_AGE_WARN_DAYS.get(platform, 25):
+        return age_text, "⚠️ 快过期，建议重扫"
+    return age_text, "✅ 正常"
 
 
 class PlatformStatus(BaseModel):
