@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import csv
 from pathlib import Path
 
 import yaml
+from openpyxl import load_workbook
 
 PLATFORMS = ("bilibili", "weibo", "douyin", "kuaishou")
 
@@ -50,6 +52,56 @@ def add_account(config_root: Path, platform: str, account_id: str, account_name:
     accounts.append({"account_id": str(account_id), "account_name": str(account_name)})
     write_accounts(config_root, platform, accounts)
     return True
+
+
+def _read_csv(path: Path) -> list[dict]:
+    with path.open(encoding="utf-8-sig", newline="") as f:
+        return list(csv.DictReader(f))
+
+
+def _read_xlsx(path: Path) -> list[dict]:
+    wb = load_workbook(path, read_only=True)
+    ws = wb.active
+    rows = list(ws.iter_rows(values_only=True))
+    if not rows:
+        return []
+    header = [str(h).strip() if h is not None else "" for h in rows[0]]
+    out = []
+    for r in rows[1:]:
+        out.append({header[i]: (r[i] if i < len(r) else None) for i in range(len(header))})
+    return out
+
+
+def parse_import_file(path: Path) -> tuple[list[dict], list[tuple[int, str]]]:
+    """解析导入文件，返回 (合法行, 错误行)。
+    合法行：[{platform, account_id, account_name}]；account_name 为空时用 account_id 兜底。
+    错误行：[(行号, 原因)]，行号含表头（数据从第 2 行起）。全空行忽略，不算错误。
+    """
+    path = Path(path)
+    suffix = path.suffix.lower()
+    if suffix == ".csv":
+        raw = _read_csv(path)
+    elif suffix == ".xlsx":
+        raw = _read_xlsx(path)
+    else:
+        raise ValueError(f"不支持的导入格式：{suffix}（仅 .csv / .xlsx）")
+
+    valid: list[dict] = []
+    errors: list[tuple[int, str]] = []
+    for i, r in enumerate(raw, start=2):  # 第 1 行是表头
+        platform = str(r.get("platform") or "").strip()
+        aid = str(r.get("account_id") or "").strip()
+        name = str(r.get("account_name") or "").strip()
+        if not platform and not aid and not name:
+            continue  # 全空行忽略
+        if platform not in PLATFORMS:
+            errors.append((i, f"平台名错: {platform!r}"))
+            continue
+        if not aid:
+            errors.append((i, "account_id 为空"))
+            continue
+        valid.append({"platform": platform, "account_id": aid, "account_name": name or aid})
+    return valid, errors
 
 
 def validate_account_id(platform: str, account_id: str) -> str | None:

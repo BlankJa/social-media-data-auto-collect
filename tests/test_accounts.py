@@ -3,9 +3,12 @@ from pathlib import Path
 from collector.accounts import (
     add_account,
     load_accounts_raw,
+    parse_import_file,
     remove_account,
     validate_account_id,
 )
+
+FIXTURES = Path(__file__).parent / "fixtures"
 
 
 def test_add_then_load(tmp_path: Path):
@@ -52,3 +55,19 @@ def test_validate_warns():
     assert validate_account_id("bilibili", "abc") is not None
     assert validate_account_id("kuaishou", "zzz") is not None
     assert validate_account_id("douyin", "123") is not None
+
+
+def test_parse_import_csv():
+    valid, errors = parse_import_file(FIXTURES / "import_sample.csv")
+    assert [(v["platform"], v["account_id"]) for v in valid] == [
+        ("kuaishou", "3xaaa"),
+        ("bilibili", "123456"),
+    ]
+    assert len(errors) == 1  # tieba 那行
+    assert errors[0][0] == 4  # 第4行（含表头第1行）
+
+
+def test_parse_import_xlsx():
+    valid, errors = parse_import_file(FIXTURES / "import_sample.xlsx")
+    assert [v["account_id"] for v in valid] == ["MS4wLjABAAAAxyz", "3xbbb"]
+    assert errors == []  # 空行被忽略，不算错误
