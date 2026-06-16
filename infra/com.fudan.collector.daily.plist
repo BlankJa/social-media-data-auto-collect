@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.fudan.collector.daily</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/sh</string>
+    <string>-c</string>
+    <string>cd __REPO__ &amp;&amp; uv run python cli.py collect all &amp;&amp; uv run python cli.py render all</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>0</integer></dict>
+  <key>StandardOutPath</key><string>__REPO__/logs/launchd.out.log</string>
+  <key>StandardErrorPath</key><string>__REPO__/logs/launchd.err.log</string>
+</dict>
+</plist>

@@ -1,0 +1,5 @@
+# fudan-collector 调度（Linux crontab）。__REPO__ 由 install.sh 在安装时替换为绝对路径。
+# 每天 08:00 跑增量并渲染
+0 8 * * * cd __REPO__ && /usr/local/bin/uv run python cli.py collect all && /usr/local/bin/uv run python cli.py render all >> __REPO__/logs/cron.daily.log 2>&1 # fudan-collector
+# 每周日 09:00 跑全量并渲染
+0 9 * * 0 cd __REPO__ && /usr/local/bin/uv run python cli.py collect all --full && /usr/local/bin/uv run python cli.py render all --full >> __REPO__/logs/cron.weekly.log 2>&1 # fudan-collector
