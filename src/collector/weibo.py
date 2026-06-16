@@ -35,6 +35,7 @@ class Weibo:
             "x-requested-with": "XMLHttpRequest",
             "x-xsrf-token": cookies.get("XSRF-TOKEN", ""),
         }
+        self.last_response = {}
         with httpx.Client(cookies=cookies, headers=headers) as client:
             page = 1
             while True:
@@ -44,6 +45,7 @@ class Weibo:
                     timeout=15,
                 )
                 data = r.json()
+                self.last_response = data  # cookie_health 读顶层 ok
                 if not data.get("ok"):
                     logger.warning("weibo not ok page={} data={}", page, data)
                     return

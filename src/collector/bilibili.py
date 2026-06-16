@@ -62,6 +62,7 @@ class Bilibili:
             "User-Agent": _UA,
             "Referer": f"https://space.bilibili.com/{account.account_id}/dynamic",
         }
+        self.last_response = {}
         with httpx.Client(cookies=cookies, headers=headers, http2=True) as client:
             mixin = self._get_mixin_key(client)
             offset = ""
@@ -80,6 +81,7 @@ class Bilibili:
                 )
                 r = client.get(_FEED_URL, params=params, timeout=15)
                 data = r.json()
+                self.last_response = data  # cookie_health 读顶层 code
                 if data.get("code") != 0:
                     logger.warning(
                         "bilibili feed code={} msg={}",

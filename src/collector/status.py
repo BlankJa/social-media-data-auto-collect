@@ -1,0 +1,87 @@
+from __future__ import annotations
+
+import json
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import Literal
+
+from pydantic import BaseModel
+from rich.console import Console
+from rich.table import Table
+
+from collector.schemas import Platform
+
+CookieHealth = Literal["ok", "warning", "expired"]
+
+
+class PlatformStatus(BaseModel):
+    accounts_total: int
+    accounts_ok: int
+    accounts_failed: int
+    new_posts: int
+    new_posts_7d: int
+    cookie_health: CookieHealth
+
+
+class RunStatus(BaseModel):
+    last_run_started_at: datetime
+    last_run_finished_at: datetime
+    last_run_mode: Literal["incremental", "full"]
+    platforms: dict[str, PlatformStatus]
+
+
+def write_status(path: Path, status: RunStatus) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(status.model_dump_json(indent=2), encoding="utf-8")
+
+
+def read_status(path: Path) -> RunStatus:
+    return RunStatus.model_validate_json(path.read_text("utf-8"))
+
+
+def count_recent_posts(data_root: Path, platform: Platform, *, days: int = 7) -> int:
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    plat = data_root / platform
+    if not plat.exists():
+        return 0
+    n = 0
+    for acc in plat.iterdir():
+        if not acc.is_dir():
+            continue
+        for f in acc.glob("*.json"):
+            if f.name == "_meta.json":
+                continue
+            try:
+                raw = json.loads(f.read_text("utf-8"))["fetched_at"]
+                # py3.11 fromisoformat 不吃 'Z' 后缀
+                fetched = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+                if fetched.tzinfo is None:
+                    fetched = fetched.replace(tzinfo=timezone.utc)
+                if fetched >= cutoff:
+                    n += 1
+            except Exception:
+                continue
+    return n
+
+
+def render_status_table(status: RunStatus) -> None:
+    console = Console()
+    table = Table(title=f"上次运行：{status.last_run_finished_at:%Y-%m-%d %H:%M}（{status.last_run_mode}）")
+    table.add_column("平台")
+    table.add_column("账号 ok/总")
+    table.add_column("本次新增")
+    table.add_column("近7天")
+    table.add_column("Cookie")
+    cell = {"ok": "[green]✓[/]", "warning": "[yellow]⚠[/]", "expired": "[red]✗ 已过期[/]"}
+    for name, ps in status.platforms.items():
+        cookie_cell = cell[ps.cookie_health]
+        if ps.cookie_health == "expired":
+            cookie_cell += f"  → cli.py login {name}"
+        table.add_row(
+            name,
+            f"{ps.accounts_ok}/{ps.accounts_total}",
+            str(ps.new_posts),
+            str(ps.new_posts_7d),
+            cookie_cell,
+        )
+    console.print(table)

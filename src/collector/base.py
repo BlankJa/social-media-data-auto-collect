@@ -18,6 +18,8 @@ CookieHealth = Literal["ok", "warning", "expired"]
 
 class Platform(Protocol):
     name: PlatformName
+    # fetch_user_feed 每轮把最后一次接口响应存这里，供 cookie_health 判健康度。
+    last_response: dict[str, Any]
 
     def fetch_user_feed(
         self, account: Account, cookies: dict[str, str], since_post_id: str | None
@@ -73,6 +75,11 @@ def collect_account(
         logger.exception(
             "collect_account failed for {} / {}", platform.name, account.account_id
         )
+
+    # 接口响应级健康判定：平台在 fetch 时把最后一次响应存到 self.last_response，
+    # 这里据此让平台判 cookie 健康度（四平台都读 code/ok/status_code/result 等响应级字段，
+    # 不能传单条 feed item）。fetch 没发出请求时 last_response 为空 dict → 各平台返回 "ok"。
+    health = platform.cookie_health(getattr(platform, "last_response", {}))
 
     save_meta(
         data_root,

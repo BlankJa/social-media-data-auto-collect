@@ -63,6 +63,7 @@ class Kuaishou:
             "Referer": f"https://www.kuaishou.com/profile/{account.account_id}",
             "Content-Type": "application/json",
         }
+        self.last_response = {}
         with httpx.Client(cookies=cookies, headers=headers) as client:
             pcursor = ""
             while True:
@@ -78,6 +79,8 @@ class Kuaishou:
                 r = client.post(_GQL, json=body, timeout=15)
                 data = r.json()
                 vppl = ((data.get("data") or {}).get("visionProfilePhotoList")) or {}
+                # result 在 vppl 内（非顶层），cookie_health 读它
+                self.last_response = vppl
                 feeds = vppl.get("feeds") or []
                 if not feeds:
                     logger.warning("kuaishou empty feeds data={}", data)
@@ -114,9 +117,11 @@ class Kuaishou:
         )
 
     def cookie_health(self, last_response: dict[str, Any]) -> CookieHealth:
+        # last_response 是 visionProfilePhotoList 节点。真机实测：result==1 是正常有数据，
+        # result==2 是「翻到底」的正常结束信号（240 条采完那页就是 2），不能判过期。
+        # 已知局限：快手 result 对「未登录/cookie 过期」与「正常翻完」可能都返回 2，
+        # 无法仅凭响应区分，故这里不主动报 expired，避免每次跑完误报。
         result = last_response.get("result")
-        if result == 2:
-            return "expired"
-        if result not in (None, 1):
+        if result not in (None, 1, 2):
             return "warning"
         return "ok"

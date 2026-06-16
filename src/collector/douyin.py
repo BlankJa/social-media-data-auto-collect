@@ -29,6 +29,7 @@ class Douyin:
             "User-Agent": _UA,
             "Referer": f"https://www.douyin.com/user/{account.account_id}",
         }
+        self.last_response = {}
         with httpx.Client(cookies=cookies, headers=headers, http2=True) as client:
             max_cursor = 0
             while True:
@@ -47,6 +48,7 @@ class Douyin:
                 )
                 r = client.get(_FEED_URL, params=params, timeout=15)
                 data = r.json()
+                self.last_response = data  # cookie_health 读顶层 status_code
                 if data.get("status_code") not in (None, 0):
                     logger.warning(
                         "douyin code={} msg={}",

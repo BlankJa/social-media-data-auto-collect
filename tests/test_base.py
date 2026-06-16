@@ -51,6 +51,15 @@ def test_full_run_saves_all(tmp_path: Path):
     assert (tmp_path / "bilibili" / "A1" / "BV3.json").exists()
 
 
+def test_cookie_health_wired_from_platform(tmp_path: Path):
+    """collect_account 的 cookie_health 应来自平台 cookie_health()，而非写死 ok。"""
+    plat = FakePlatform([_post("BV1")])
+    plat.health = "expired"
+    account = Account(platform="bilibili", account_id="A1", account_name="复旦")
+    result = collect_account(plat, account, cookies={}, data_root=tmp_path, full=True)
+    assert result.cookie_health == "expired"
+
+
 def test_incremental_stops_at_watermark(tmp_path: Path):
     plat = FakePlatform([_post("BV3"), _post("BV2"), _post("BV1")])
     account = Account(platform="bilibili", account_id="A1", account_name="复旦")
