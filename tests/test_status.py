@@ -1,13 +1,36 @@
 from datetime import datetime, timezone
 from pathlib import Path
 
+from collector.cookies import save_cookies
 from collector.status import (
     PlatformStatus,
     RunStatus,
+    cookie_advice,
     count_recent_posts,
     read_status,
     write_status,
 )
+
+
+def test_cookie_advice_missing(tmp_path: Path):
+    age, advice = cookie_advice("kuaishou", tmp_path / "nope.json", None)
+    assert age == "—"
+    assert "未登录" in advice
+
+
+def test_cookie_advice_expired(tmp_path: Path):
+    p = tmp_path / "weibo.json"
+    save_cookies(p, platform="weibo", cookies=[{"name": "a", "value": "1"}])
+    age, advice = cookie_advice("weibo", p, "expired")
+    assert "已过期" in advice
+
+
+def test_cookie_advice_fresh_ok(tmp_path: Path):
+    p = tmp_path / "bilibili.json"
+    save_cookies(p, platform="bilibili", cookies=[{"name": "a", "value": "1"}])
+    age, advice = cookie_advice("bilibili", p, "ok")
+    assert advice.startswith("✅")
+    assert age == "0天"
 
 
 def test_write_then_read(tmp_path: Path):
