@@ -248,7 +248,7 @@ def render(
     date: str = typer.Option(None, "--date"),
     full: bool = typer.Option(False, "--full"),
 ):
-    """从 data/ 渲染指定日期的 Excel。默认今天。"""
+    """从 data/ 渲染当前主页全量快照的 Excel。文件名按渲染日命名（默认今天）。"""
     names = list(PLATFORMS.keys()) if platform == "all" else [platform]
     when = datetime.fromisoformat(date) if date else datetime.now()
     for name in names:
@@ -256,15 +256,16 @@ def render(
         plat_dir = DATA_ROOT / name
         if not plat_dir.exists():
             continue
-        for acc_dir in plat_dir.iterdir():
+        # 只渲 config 里登记的账号；盘上残留的旧账号目录不进 Excel
+        for account in _load_accounts(name):
+            acc_dir = plat_dir / account.account_id
             if not acc_dir.is_dir():
                 continue
             for f in acc_dir.glob("*.json"):
                 if f.name == "_meta.json":
                     continue
                 data = json.loads(f.read_text("utf-8"))
-                if data["fetched_at"].startswith(when.strftime("%Y-%m-%d")):
-                    posts.append(Post.model_validate(data))
+                posts.append(Post.model_validate(data))
         out = REPORT_ROOT / report_filename(name, when, full=full)
         render_xlsx(out, platform=name, posts=posts)
         logger.info("rendered {} ({} rows) -> {}", name, len(posts), out)
