@@ -103,3 +103,27 @@ def test_failed_accounts_roundtrip(tmp_path: Path):
     back = read_status(path)
     assert back.platforms["bilibili"].failed_accounts[0].account_id == "A2"
     assert back.platforms["bilibili"].failed_accounts[0].error == "boom"
+
+
+def test_panel_lists_failed_accounts(capsys, tmp_path):
+    """面板在表下列出失败账号的名称与 error。"""
+    from datetime import datetime
+    from collector.status import (
+        FailedAccount, PlatformStatus, RunStatus, render_status_panel,
+    )
+    rs = RunStatus(
+        last_run_started_at=datetime(2026, 6, 17),
+        last_run_finished_at=datetime(2026, 6, 17),
+        last_run_mode="incremental",
+        platforms={"weibo": PlatformStatus(
+            accounts_total=2, accounts_ok=1, accounts_failed=1,
+            new_posts=0, new_posts_7d=0, cookie_health="ok",
+            failed_accounts=[FailedAccount(
+                account_id="123", account_name="某账号", error="cookie expired",
+            )],
+        )},
+    )
+    render_status_panel(["weibo"], tmp_path / "cookies", tmp_path / "data", rs)
+    out = capsys.readouterr().out
+    assert "某账号" in out
+    assert "cookie expired" in out
