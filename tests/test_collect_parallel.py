@@ -4,6 +4,16 @@ from pathlib import Path
 from collector.schemas import Account, Post, RawPost
 
 
+def _fake_post(account: Account, raw: RawPost) -> Post:
+    return Post(
+        platform="bilibili", post_id=raw.post_id,
+        url=f"https://b/{raw.post_id}", title=raw.post_id, media_type="video",
+        published_at=datetime(2026, 6, 1, tzinfo=timezone.utc),
+        author_id=account.account_id, author_name=account.account_name,
+        fetched_at=datetime(2026, 6, 8, tzinfo=timezone.utc), raw={},
+    )
+
+
 class FlakyPlatform:
     """指定 bad_id 的账号 fetch 时抛异常，其余正常返回 1 条。"""
 
@@ -22,16 +32,34 @@ class FlakyPlatform:
         )
 
     def parse(self, raw, account):
-        return Post(
-            platform="bilibili", post_id=raw.post_id,
-            url=f"https://b/{raw.post_id}", title=raw.post_id, media_type="video",
-            published_at=datetime(2026, 6, 1, tzinfo=timezone.utc),
-            author_id=account.account_id, author_name=account.account_name,
-            fetched_at=datetime(2026, 6, 8, tzinfo=timezone.utc), raw={},
-        )
+        return _fake_post(account, raw)
 
     def cookie_health(self, last_response):
         return "ok"
+
+
+class HealthPlatform:
+    """每个账号返回 health_by_account 指定的 cookie_health。"""
+
+    name = "bilibili"
+
+    def __init__(self, health_by_account: dict[str, str]):
+        self.health_by_account = health_by_account
+        self._current = "ok"
+        self.last_response = {}
+
+    def fetch_user_feed(self, account, cookies, since_post_id):
+        self._current = self.health_by_account.get(account.account_id, "ok")
+        yield RawPost(
+            account=account, raw={"id": account.account_id},
+            post_id=f"P_{account.account_id}",
+        )
+
+    def parse(self, raw, account):
+        return _fake_post(account, raw)
+
+    def cookie_health(self, last_response):
+        return self._current
 
 
 def _accounts(*ids: str) -> list[Account]:
@@ -52,3 +80,23 @@ def test_run_accounts_isolates_failure(tmp_path: Path):
     assert "boom" in st.failed_accounts[0].error
     assert (tmp_path / "bilibili" / "A1" / "P_A1.json").exists()
     assert (tmp_path / "bilibili" / "A3" / "P_A3.json").exists()
+
+
+def test_run_accounts_expired_dominates(tmp_path):
+    from cli import _run_accounts
+    plat = HealthPlatform({"A1": "warning", "A2": "expired", "A3": "ok"})
+    st = _run_accounts(
+        "bilibili", plat, _accounts("A1", "A2", "A3"),
+        cookies={}, data_root=tmp_path, full=True,
+    )
+    assert st.cookie_health == "expired"
+
+
+def test_run_accounts_warning_when_no_expired(tmp_path):
+    from cli import _run_accounts
+    plat = HealthPlatform({"A1": "ok", "A2": "warning", "A3": "ok"})
+    st = _run_accounts(
+        "bilibili", plat, _accounts("A1", "A2", "A3"),
+        cookies={}, data_root=tmp_path, full=True,
+    )
+    assert st.cookie_health == "warning"

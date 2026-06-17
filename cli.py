@@ -18,12 +18,13 @@ from collector.accounts import (
     remove_account,
     validate_account_id,
 )
-from collector.base import collect_account
+from collector.base import Platform as PlatformProtocol, collect_account
 from collector.cookies import load_cookies, to_httpx_cookies
 from collector.registry import PLATFORMS, login_func
 from collector.rendering import render_xlsx, report_filename
 from collector.schemas import Account, Platform, Post
 from collector.status import (
+    CookieHealth,
     FailedAccount,
     PlatformStatus,
     RunStatus,
@@ -171,20 +172,20 @@ def login(platform: str):
 
 def _run_accounts(
     name: str,
-    plat,
+    plat: PlatformProtocol,
     accounts: list[Account],
     cookies: dict[str, str],
     data_root: Path,
     *,
     full: bool,
 ) -> PlatformStatus:
-    """串行采集单个平台的所有账号 + 节流，聚合成 PlatformStatus。
+    """串行采集单个平台的所有账号，聚合成 PlatformStatus（节流在 collect_account 内）。
 
     collect_account 已 per-account 捕获异常并把 error 写进 CollectResult，
     所以单账号失败只记一条 failed_account、不阻塞其余账号。
     """
     ok = failed = new_total = 0
-    health: str = "ok"
+    health: CookieHealth = "ok"
     failures: list[FailedAccount] = []
     for account in accounts:
         logger.info(
@@ -213,7 +214,7 @@ def _run_accounts(
     return PlatformStatus(
         accounts_total=len(accounts), accounts_ok=ok, accounts_failed=failed,
         new_posts=new_total, new_posts_7d=count_recent_posts(data_root, name),
-        cookie_health=health,  # type: ignore[arg-type]
+        cookie_health=health,
         failed_accounts=failures,
     )
 
