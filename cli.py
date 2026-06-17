@@ -242,7 +242,6 @@ def status():
     render_status_panel(list(PLATFORMS.keys()), COOKIE_ROOT, DATA_ROOT, rs)
 
 
-@app.command()
 def select_render_posts(
     platform: str, data_root: Path, accounts: list[Account]
 ) -> list[Post]:
@@ -266,6 +265,7 @@ def select_render_posts(
     return posts
 
 
+@app.command()
 def render(
     platform: str,
     date: str = typer.Option(None, "--date"),
