@@ -260,7 +260,7 @@ def collect(platform: str, full: bool = typer.Option(False, "--full")):
     names = list(PLATFORMS.keys()) if platform == "all" else [platform]
     started = datetime.now()
     plat_statuses: dict[str, PlatformStatus] = {}
-    with ThreadPoolExecutor(max_workers=len(names)) as ex:
+    with ThreadPoolExecutor(max_workers=min(len(names), 4)) as ex:
         futures = {
             ex.submit(collect_platform, n, COOKIE_ROOT, DATA_ROOT, full=full): n
             for n in names

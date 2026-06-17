@@ -102,6 +102,34 @@ def test_run_accounts_warning_when_no_expired(tmp_path):
     assert st.cookie_health == "warning"
 
 
+def test_collect_platform_missing_cookie_returns_expired(tmp_path):
+    """cookie 文件不存在 → 返回 expired 兜底，零账号。"""
+    from cli import collect_platform
+    st = collect_platform("bilibili", tmp_path / "cookies", tmp_path / "data", full=False)
+    assert st.cookie_health == "expired"
+    assert st.accounts_total == 0
+    assert st.accounts_ok == 0
+    assert st.accounts_failed == 0
+
+
+def test_collect_platform_unexpected_error_returns_warning(tmp_path, monkeypatch):
+    """cookie 正常但 _load_accounts 抛异常 → warning 兜底 + 一条 FailedAccount。"""
+    import cli
+    monkeypatch.setattr(cli, "load_cookies", lambda p: {})
+    monkeypatch.setattr(cli, "to_httpx_cookies", lambda c: {})
+
+    def boom(name):
+        raise RuntimeError("kaboom")
+
+    monkeypatch.setattr(cli, "_load_accounts", boom)
+    st = cli.collect_platform("bilibili", tmp_path / "cookies", tmp_path / "data", full=False)
+    assert st.cookie_health == "warning"
+    assert st.accounts_total == 0
+    assert st.failed_accounts
+    assert st.failed_accounts[0].account_id == "-"
+    assert "kaboom" in st.failed_accounts[0].error
+
+
 def test_collect_all_runs_every_platform(tmp_path, monkeypatch):
     """collect('all') 经线程池跑完四平台，status.json 含全部四行。"""
     import cli
