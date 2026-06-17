@@ -36,6 +36,12 @@ def cookie_advice(
     return age_text, "✅ 正常"
 
 
+class FailedAccount(BaseModel):
+    account_id: str
+    account_name: str
+    error: str
+
+
 class PlatformStatus(BaseModel):
     accounts_total: int
     accounts_ok: int
@@ -43,6 +49,7 @@ class PlatformStatus(BaseModel):
     new_posts: int
     new_posts_7d: int
     cookie_health: CookieHealth
+    failed_accounts: list[FailedAccount] = []
 
 
 class RunStatus(BaseModel):
@@ -92,19 +99,30 @@ def render_status_panel(
     data_root: Path,
     run_status: "RunStatus | None",
 ) -> None:
-    """实时面板：cookie 年龄（独立于上次运行）+ 近7天 + 建议。"""
+    """实时面板：cookie 年龄 + 近7天 + 账号 ok/total + 建议；表下列出失败账号。"""
     console = Console()
     table = Table(title="新媒体采集状态")
     table.add_column("平台")
     table.add_column("Cookie 年龄")
     table.add_column("近7天")
+    table.add_column("账号")
     table.add_column("建议")
+    failures: list[tuple[str, str, str, str]] = []  # (平台, 名称, id, error)
     for name in platforms:
         health = None
+        accounts_text = "—"
         if run_status is not None and name in run_status.platforms:
-            health = run_status.platforms[name].cookie_health
+            ps = run_status.platforms[name]
+            health = ps.cookie_health
+            accounts_text = f"{ps.accounts_ok}/{ps.accounts_total} ✓"
+            for fa in ps.failed_accounts:
+                failures.append((name, fa.account_name, fa.account_id, fa.error))
         age_text, advice = cookie_advice(name, cookie_root / f"{name}.json", health)
         n7 = count_recent_posts(data_root, name)
-        table.add_row(name, age_text, str(n7), advice)
+        table.add_row(name, age_text, str(n7), accounts_text, advice)
     console.print(table)
+    if failures:
+        console.print("[red]❌ 失败账号：[/red]")
+        for plat, acc_name, acc_id, err in failures:
+            console.print(f"  {plat} / {acc_name} ({acc_id})：{err}")
     console.print("重扫命令：cli.py login <平台>")

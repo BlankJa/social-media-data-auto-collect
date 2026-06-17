@@ -3,6 +3,7 @@ from pathlib import Path
 
 from collector.cookies import save_cookies
 from collector.status import (
+    FailedAccount,
     PlatformStatus,
     RunStatus,
     cookie_advice,
@@ -73,3 +74,56 @@ def test_count_recent_posts_skips_meta(tmp_path: Path):
         '{"fetched_at": "%s"}' % datetime.now(timezone.utc).isoformat(), "utf-8"
     )
     assert count_recent_posts(tmp_path, "bilibili", days=7) == 0
+
+
+def test_failed_accounts_defaults_empty():
+    """不传 failed_accounts 时默认空列表（向后兼容旧 status.json）。"""
+    ps = PlatformStatus(
+        accounts_total=1, accounts_ok=1, accounts_failed=0,
+        new_posts=0, new_posts_7d=0, cookie_health="ok",
+    )
+    assert ps.failed_accounts == []
+
+
+def test_failed_accounts_roundtrip(tmp_path: Path):
+    """failed_accounts 能写入并读回 status.json。"""
+    ps = PlatformStatus(
+        accounts_total=2, accounts_ok=1, accounts_failed=1,
+        new_posts=0, new_posts_7d=0, cookie_health="ok",
+        failed_accounts=[FailedAccount(account_id="A2", account_name="二号", error="boom")],
+    )
+    rs = RunStatus(
+        last_run_started_at=datetime(2026, 6, 17, tzinfo=timezone.utc),
+        last_run_finished_at=datetime(2026, 6, 17, tzinfo=timezone.utc),
+        last_run_mode="incremental",
+        platforms={"bilibili": ps},
+    )
+    path = tmp_path / "status.json"
+    write_status(path, rs)
+    back = read_status(path)
+    assert back.platforms["bilibili"].failed_accounts[0].account_id == "A2"
+    assert back.platforms["bilibili"].failed_accounts[0].error == "boom"
+
+
+def test_panel_lists_failed_accounts(capsys, tmp_path):
+    """面板在表下列出失败账号的名称与 error。"""
+    from datetime import datetime
+    from collector.status import (
+        FailedAccount, PlatformStatus, RunStatus, render_status_panel,
+    )
+    rs = RunStatus(
+        last_run_started_at=datetime(2026, 6, 17),
+        last_run_finished_at=datetime(2026, 6, 17),
+        last_run_mode="incremental",
+        platforms={"weibo": PlatformStatus(
+            accounts_total=2, accounts_ok=1, accounts_failed=1,
+            new_posts=0, new_posts_7d=0, cookie_health="ok",
+            failed_accounts=[FailedAccount(
+                account_id="123", account_name="某账号", error="cookie expired",
+            )],
+        )},
+    )
+    render_status_panel(["weibo"], tmp_path / "cookies", tmp_path / "data", rs)
+    out = capsys.readouterr().out
+    assert "某账号" in out
+    assert "cookie expired" in out

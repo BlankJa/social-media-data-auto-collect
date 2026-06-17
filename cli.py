@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 
@@ -18,12 +19,14 @@ from collector.accounts import (
     remove_account,
     validate_account_id,
 )
-from collector.base import collect_account
+from collector.base import Platform as PlatformProtocol, collect_account
 from collector.cookies import load_cookies, to_httpx_cookies
 from collector.registry import PLATFORMS, login_func
 from collector.rendering import render_xlsx, report_filename
 from collector.schemas import Account, Platform, Post
 from collector.status import (
+    CookieHealth,
+    FailedAccount,
     PlatformStatus,
     RunStatus,
     count_recent_posts,
@@ -168,56 +171,102 @@ def login(platform: str):
     fn(out)
 
 
+def _run_accounts(
+    name: str,
+    plat: PlatformProtocol,
+    accounts: list[Account],
+    cookies: dict[str, str],
+    data_root: Path,
+    *,
+    full: bool,
+) -> PlatformStatus:
+    """串行采集单个平台的所有账号，聚合成 PlatformStatus（节流在 collect_account 内）。
+
+    collect_account 已 per-account 捕获异常并把 error 写进 CollectResult，
+    所以单账号失败只记一条 failed_account、不阻塞其余账号。
+    """
+    ok = failed = new_total = 0
+    health: CookieHealth = "ok"
+    failures: list[FailedAccount] = []
+    for account in accounts:
+        logger.info(
+            "collect_start platform={} account={} mode={}",
+            name, account.account_id, "full" if full else "incremental",
+        )
+        result = collect_account(plat, account, cookies, data_root, full=full)
+        logger.info(
+            "collect_done new_posts={} stopped_at={} error={}",
+            result.new_posts, result.stopped_at, result.error,
+        )
+        new_total += result.new_posts
+        if result.error:
+            failed += 1
+            failures.append(FailedAccount(
+                account_id=account.account_id,
+                account_name=account.account_name,
+                error=result.error[:200],
+            ))
+        else:
+            ok += 1
+        if result.cookie_health == "expired":
+            health = "expired"
+        elif result.cookie_health == "warning" and health == "ok":
+            health = "warning"
+    return PlatformStatus(
+        accounts_total=len(accounts), accounts_ok=ok, accounts_failed=failed,
+        new_posts=new_total, new_posts_7d=count_recent_posts(data_root, name),
+        cookie_health=health,
+        failed_accounts=failures,
+    )
+
+
+def collect_platform(
+    name: str, cookie_root: Path, data_root: Path, *, full: bool
+) -> PlatformStatus:
+    """采集单个平台（在工作线程里跑）：加载 cookie、账号，调 _run_accounts。
+
+    cookie 缺失 → 返回 expired 兜底 status。任何未预期异常 → 捕获并返回兜底
+    status，保证一个平台线程崩了不拖累其余平台。
+    """
+    try:
+        cookies = to_httpx_cookies(load_cookies(cookie_root / f"{name}.json"))
+    except Exception:
+        logger.warning("{} 无 cookie，跳过（标记 expired）", name)
+        return PlatformStatus(
+            accounts_total=0, accounts_ok=0, accounts_failed=0,
+            new_posts=0, new_posts_7d=count_recent_posts(data_root, name),
+            cookie_health="expired",
+        )
+    try:
+        accounts = _load_accounts(name)
+        return _run_accounts(
+            name, PLATFORMS[name], accounts, cookies, data_root, full=full
+        )
+    except Exception as exc:
+        logger.exception("collect_platform 异常 platform={}", name)
+        return PlatformStatus(
+            accounts_total=0, accounts_ok=0, accounts_failed=0,
+            new_posts=0, new_posts_7d=count_recent_posts(data_root, name),
+            cookie_health="warning",
+            failed_accounts=[FailedAccount(
+                account_id="-", account_name=name, error=repr(exc)[:200]
+            )],
+        )
+
+
 @app.command()
 def collect(platform: str, full: bool = typer.Option(False, "--full")):
-    """对单个平台或 all 跑增量 / 全量。"""
+    """对单个平台或 all 跑增量 / 全量。all 时四平台并发（平台内串行+节流）。"""
     names = list(PLATFORMS.keys()) if platform == "all" else [platform]
     started = datetime.now()
     plat_statuses: dict[str, PlatformStatus] = {}
-    for name in names:
-        plat = PLATFORMS[name]
-        try:
-            cookies = to_httpx_cookies(load_cookies(COOKIE_ROOT / f"{name}.json"))
-        except Exception:
-            logger.warning("{} 无 cookie，跳过（标记 expired）", name)
-            plat_statuses[name] = PlatformStatus(
-                accounts_total=0, accounts_ok=0, accounts_failed=0,
-                new_posts=0, new_posts_7d=count_recent_posts(DATA_ROOT, name),
-                cookie_health="expired",
-            )
-            continue
-
-        accounts = _load_accounts(name)
-        ok = failed = new_total = 0
-        health: str = "ok"
-        for account in accounts:
-            logger.info(
-                "collect_start platform={} account={} mode={}",
-                name,
-                account.account_id,
-                "full" if full else "incremental",
-            )
-            result = collect_account(plat, account, cookies, DATA_ROOT, full=full)
-            logger.info(
-                "collect_done new_posts={} stopped_at={} error={}",
-                result.new_posts,
-                result.stopped_at,
-                result.error,
-            )
-            new_total += result.new_posts
-            if result.error:
-                failed += 1
-            else:
-                ok += 1
-            if result.cookie_health == "expired":
-                health = "expired"
-            elif result.cookie_health == "warning" and health == "ok":
-                health = "warning"
-        plat_statuses[name] = PlatformStatus(
-            accounts_total=len(accounts), accounts_ok=ok, accounts_failed=failed,
-            new_posts=new_total, new_posts_7d=count_recent_posts(DATA_ROOT, name),
-            cookie_health=health,  # type: ignore[arg-type]
-        )
+    with ThreadPoolExecutor(max_workers=min(len(names), 4)) as ex:
+        futures = {
+            ex.submit(collect_platform, n, COOKIE_ROOT, DATA_ROOT, full=full): n
+            for n in names
+        }
+        for f in as_completed(futures):
+            plat_statuses[futures[f]] = f.result()
 
     # 合并：单平台跑只更新该平台行，保留其余平台上次的状态
     merged = dict(plat_statuses)
@@ -242,7 +291,6 @@ def status():
     render_status_panel(list(PLATFORMS.keys()), COOKIE_ROOT, DATA_ROOT, rs)
 
 
-@app.command()
 def select_render_posts(
     platform: str, data_root: Path, accounts: list[Account]
 ) -> list[Post]:
@@ -266,6 +314,7 @@ def select_render_posts(
     return posts
 
 
+@app.command()
 def render(
     platform: str,
     date: str = typer.Option(None, "--date"),
