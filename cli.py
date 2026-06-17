@@ -247,7 +247,7 @@ def collect_platform(
         return PlatformStatus(
             accounts_total=0, accounts_ok=0, accounts_failed=0,
             new_posts=0, new_posts_7d=count_recent_posts(data_root, name),
-            cookie_health="ok",
+            cookie_health="warning",
             failed_accounts=[FailedAccount(
                 account_id="-", account_name=name, error=repr(exc)[:200]
             )],
@@ -260,7 +260,7 @@ def collect(platform: str, full: bool = typer.Option(False, "--full")):
     names = list(PLATFORMS.keys()) if platform == "all" else [platform]
     started = datetime.now()
     plat_statuses: dict[str, PlatformStatus] = {}
-    with ThreadPoolExecutor(max_workers=4) as ex:
+    with ThreadPoolExecutor(max_workers=len(names)) as ex:
         futures = {
             ex.submit(collect_platform, n, COOKIE_ROOT, DATA_ROOT, full=full): n
             for n in names
