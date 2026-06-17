@@ -77,8 +77,9 @@ uv run python cli.py login weibo
 uv run python cli.py login douyin
 uv run python cli.py login kuaishou
 
-# 3. 编辑账号清单
-$EDITOR configs/bilibili.yaml   # 写入要采的 account_id + 备注
+# 3. 加账号（免编 YAML）——交互式或带参，详见下方「账号管理」
+uv run python cli.py account add              # 交互式选平台、输 id/名称
+uv run python cli.py account import 账号.xlsx  # 批量导入
 
 # 4. 跑采集
 uv run python cli.py collect all              # 四平台增量
@@ -87,7 +88,7 @@ uv run python cli.py collect bilibili --full  # 单平台全量
 # 5. 渲染当日 Excel 到 reports/
 uv run python cli.py render all
 
-# 6. 查看健康面板
+# 6. 查看健康面板（cookie 年龄 + 建议哪个该重扫）
 uv run python cli.py status
 
 # 7. 装定时调度（一次性）
@@ -95,14 +96,48 @@ bash infra/install.sh                                # macOS / Linux
 powershell -ExecutionPolicy Bypass -File infra\install.ps1   # Windows
 ```
 
+## 账号管理（`cli.py account`）
+
+不用手编 YAML，增删查与批量导入账号：
+
+```bash
+uv run python cli.py account list                          # 列出四平台所有账号
+uv run python cli.py account add                           # 交互式：选平台 → 输 id → 输名称
+uv run python cli.py account add kuaishou 3xabc 复旦大学    # 带参直接加
+uv run python cli.py account remove                        # 交互式：选平台 → 选要删的账号
+uv run python cli.py account template 账号.xlsx            # 生成空导入模板
+uv run python cli.py account import 账号.xlsx             # 批量导入（.xlsx 或 .csv）
+```
+
+- **导入文件**三列：`platform` / `account_id` / `account_name`（首行表头）。`platform` 填 `bilibili`/`weibo`/`douyin`/`kuaishou`。
+- 自动**去重**（同 account_id 跳过），并汇总 `新增 N · 跳过 M · 无效 K`。
+- 对 `account_id` 做格式提示（如快手该 `3x` 开头、抖音该 `MS4w` 开头）——**仅警告不拦截**。
+- 导入后直接 `collect`：新账号无水位线，会被自动当**全量首采**，之后转增量。
+
+## 健康面板（`cli.py status`）
+
+```
+               新媒体采集状态
+┏━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━┓
+┃ 平台     ┃ Cookie 年龄 ┃ 近7天 ┃ 建议    ┃
+┡━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━┩
+│ bilibili │ 3天         │ 12    │ ✅ 正常 │
+│ kuaishou │ 6天         │ 0     │ ⚠️ 快过期，建议重扫 │
+│ weibo    │ —           │ 0     │ ❌ 未登录，需扫码   │
+└──────────┴─────────────┴───────┴─────────┘
+```
+
+「Cookie 年龄」实时从 cookie 文件算（不依赖上次运行），所以没跑过采集也能看出谁该重扫。**快手是 7 天免登录会话，约每周过期一次**，满 6 天即提示；其余平台 25 天阈值。
+
 ## 项目结构
 
 ```
 .
-├── cli.py                          # ✅ typer 入口：login / collect / render / status
+├── cli.py                          # ✅ typer 入口：login / collect / render / status / account
 ├── pyproject.toml                  # uv 项目定义
 ├── src/collector/
 │   ├── schemas.py                  # ✅ Account / Post / RawPost / ColumnSpec
+│   ├── accounts.py                 # ✅ 账号增删查 + csv/xlsx 导入（cli.py account 后端）
 │   ├── cookies.py                  # ✅ 读写 + 年龄 + httpx 适配
 │   ├── storage.py                  # ✅ JSON 文件树 + _meta.json + 原子写
 │   ├── base.py                     # ✅ Platform Protocol + collect_account 循环

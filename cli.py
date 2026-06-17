@@ -243,28 +243,39 @@ def status():
 
 
 @app.command()
+def select_render_posts(
+    platform: str, data_root: Path, accounts: list[Account]
+) -> list[Post]:
+    """渲染选取：账号目录下全部 JSON（当前主页全量快照），只认 config 登记的账号。
+
+    不按日期过滤——data/ 是当前主页快照（ADR-0003），增量后旧帖不再重采，
+    所以「只渲当天采到的」会漏掉历史。盘上残留但已从 config 移除的账号目录也不取。
+    """
+    posts: list[Post] = []
+    plat_dir = data_root / platform
+    if not plat_dir.exists():
+        return posts
+    for account in accounts:
+        acc_dir = plat_dir / account.account_id
+        if not acc_dir.is_dir():
+            continue
+        for f in acc_dir.glob("*.json"):
+            if f.name == "_meta.json":
+                continue
+            posts.append(Post.model_validate(json.loads(f.read_text("utf-8"))))
+    return posts
+
+
 def render(
     platform: str,
     date: str = typer.Option(None, "--date"),
     full: bool = typer.Option(False, "--full"),
 ):
-    """从 data/ 渲染指定日期的 Excel。默认今天。"""
+    """从 data/ 渲染当前主页全量快照的 Excel。文件名按渲染日命名（默认今天）。"""
     names = list(PLATFORMS.keys()) if platform == "all" else [platform]
     when = datetime.fromisoformat(date) if date else datetime.now()
     for name in names:
-        posts: list[Post] = []
-        plat_dir = DATA_ROOT / name
-        if not plat_dir.exists():
-            continue
-        for acc_dir in plat_dir.iterdir():
-            if not acc_dir.is_dir():
-                continue
-            for f in acc_dir.glob("*.json"):
-                if f.name == "_meta.json":
-                    continue
-                data = json.loads(f.read_text("utf-8"))
-                if data["fetched_at"].startswith(when.strftime("%Y-%m-%d")):
-                    posts.append(Post.model_validate(data))
+        posts = select_render_posts(name, DATA_ROOT, _load_accounts(name))
         out = REPORT_ROOT / report_filename(name, when, full=full)
         render_xlsx(out, platform=name, posts=posts)
         logger.info("rendered {} ({} rows) -> {}", name, len(posts), out)
