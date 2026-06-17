@@ -36,6 +36,12 @@ def cookie_advice(
     return age_text, "✅ 正常"
 
 
+class FailedAccount(BaseModel):
+    account_id: str
+    account_name: str
+    error: str
+
+
 class PlatformStatus(BaseModel):
     accounts_total: int
     accounts_ok: int
@@ -43,6 +49,7 @@ class PlatformStatus(BaseModel):
     new_posts: int
     new_posts_7d: int
     cookie_health: CookieHealth
+    failed_accounts: list[FailedAccount] = []
 
 
 class RunStatus(BaseModel):
