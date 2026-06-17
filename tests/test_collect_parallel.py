@@ -100,3 +100,27 @@ def test_run_accounts_warning_when_no_expired(tmp_path):
         cookies={}, data_root=tmp_path, full=True,
     )
     assert st.cookie_health == "warning"
+
+
+def test_collect_all_runs_every_platform(tmp_path, monkeypatch):
+    """collect('all') 经线程池跑完四平台，status.json 含全部四行。"""
+    import cli
+    from collector.status import PlatformStatus, read_status
+
+    seen = []
+
+    def fake_collect_platform(name, cookie_root, data_root, *, full):
+        seen.append(name)
+        return PlatformStatus(
+            accounts_total=1, accounts_ok=1, accounts_failed=0,
+            new_posts=0, new_posts_7d=0, cookie_health="ok",
+        )
+
+    monkeypatch.setattr(cli, "collect_platform", fake_collect_platform)
+    monkeypatch.setattr(cli, "STATUS_PATH", tmp_path / "status.json")
+
+    cli.collect("all", full=False)
+
+    assert set(seen) == set(cli.PLATFORMS.keys())
+    rs = read_status(tmp_path / "status.json")
+    assert set(rs.platforms.keys()) == set(cli.PLATFORMS.keys())
