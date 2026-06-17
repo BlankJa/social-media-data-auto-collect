@@ -24,6 +24,7 @@ from collector.registry import PLATFORMS, login_func
 from collector.rendering import render_xlsx, report_filename
 from collector.schemas import Account, Platform, Post
 from collector.status import (
+    FailedAccount,
     PlatformStatus,
     RunStatus,
     count_recent_posts,
@@ -166,6 +167,55 @@ def login(platform: str):
     fn = login_func(platform)
     out = COOKIE_ROOT / f"{platform}.json"
     fn(out)
+
+
+def _run_accounts(
+    name: str,
+    plat,
+    accounts: list[Account],
+    cookies: dict[str, str],
+    data_root: Path,
+    *,
+    full: bool,
+) -> PlatformStatus:
+    """串行采集单个平台的所有账号 + 节流，聚合成 PlatformStatus。
+
+    collect_account 已 per-account 捕获异常并把 error 写进 CollectResult，
+    所以单账号失败只记一条 failed_account、不阻塞其余账号。
+    """
+    ok = failed = new_total = 0
+    health: str = "ok"
+    failures: list[FailedAccount] = []
+    for account in accounts:
+        logger.info(
+            "collect_start platform={} account={} mode={}",
+            name, account.account_id, "full" if full else "incremental",
+        )
+        result = collect_account(plat, account, cookies, data_root, full=full)
+        logger.info(
+            "collect_done new_posts={} stopped_at={} error={}",
+            result.new_posts, result.stopped_at, result.error,
+        )
+        new_total += result.new_posts
+        if result.error:
+            failed += 1
+            failures.append(FailedAccount(
+                account_id=account.account_id,
+                account_name=account.account_name,
+                error=result.error[:200],
+            ))
+        else:
+            ok += 1
+        if result.cookie_health == "expired":
+            health = "expired"
+        elif result.cookie_health == "warning" and health == "ok":
+            health = "warning"
+    return PlatformStatus(
+        accounts_total=len(accounts), accounts_ok=ok, accounts_failed=failed,
+        new_posts=new_total, new_posts_7d=count_recent_posts(data_root, name),
+        cookie_health=health,  # type: ignore[arg-type]
+        failed_accounts=failures,
+    )
 
 
 @app.command()
